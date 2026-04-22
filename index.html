@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ultimate Pro Auth System - Level 2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:Arial;
+    background:linear-gradient(135deg,#1d2671,#c33764);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    transition:0.4s;
+}
+body.dark{
+    background:linear-gradient(135deg,#141e30,#243b55);
+}
+.container{
+    background:white;
+    width:95%;
+    max-width:500px;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+    transition:0.4s;
+}
+body.dark .container{
+    background:#1e1e1e;
+    color:white;
+}
+h2{text-align:center;margin-bottom:15px;}
+.toggle-mode{text-align:right;cursor:pointer;color:blue;font-size:14px;margin-bottom:10px;}
+
+/* Progress Bar */
+.progress{
+    height:6px;
+    background:#ddd;
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:15px;
+}
+.progress-bar{
+    height:100%;
+    width:50%;
+    background:#1d2671;
+    transition:0.4s;
+}
+
+/* Floating Label */
+.form-group{position:relative;margin:20px 0;}
+.form-group input{
+    width:100%;
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    outline:none;
+}
+.form-group label{
+    position:absolute;
+    top:10px;
+    left:10px;
+    transition:0.3s;
+    color:gray;
+    pointer-events:none;
+}
+.form-group input:focus + label,
+.form-group input:valid + label{
+    top:-10px;
+    font-size:12px;
+    background:white;
+    padding:0 5px;
+    color:#1d2671;
+}
+body.dark .form-group input:focus + label,
+body.dark .form-group input:valid + label{
+    background:#1e1e1e;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    border:none;
+    background:#1d2671;
+    color:white;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:10px;
+}
+button:hover{background:#c33764;}
+
+.step-2{display:none;}
+#strength{font-weight:bold;margin-top:5px;}
+
+.dashboard{display:none;}
+table{width:100%;border-collapse:collapse;margin-top:15px;font-size:14px;}
+th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left;}
+
+.action-btn{
+    padding:4px 6px;
+    margin-right:4px;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:12px;
+}
+.edit{background:orange;color:white;}
+.delete{background:red;color:white;}
+.toggle{
+    cursor:pointer;
+    padding:4px 6px;
+    border-radius:4px;
+    font-size:12px;
+}
+.active{background:green;color:white;}
+.inactive{background:gray;color:white;}
+
+#search{
+    width:100%;
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+/* Mobile */
+@media(max-width:480px){
+    table{font-size:12px;}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="toggle-mode" onclick="toggleMode()">Toggle Dark Mode 🌙</div>
+
+<div id="formSection">
+<h2>Register</h2>
+
+<div class="progress">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<div class="step step-1">
+    <div class="form-group">
+        <input type="text" id="name" required>
+        <label>Full Name</label>
+    </div>
+
+    <div class="form-group">
+        <input type="email" id="email" required>
+        <label>Email</label>
+    </div>
+
+    <button onclick="nextStep()">Next</button>
+</div>
+
+<div class="step step-2">
+    <div class="form-group">
+        <input type="password" id="password" required>
+        <label>Password</label>
+    </div>
+    <div id="strength"></div>
+
+    <button onclick="prevStep()">Back</button>
+    <button onclick="submitForm()">Submit</button>
+</div>
+</div>
+
+<div class="dashboard" id="dashboardSection">
+<h2>Admin Dashboard</h2>
+
+<input type="text" id="search" placeholder="Search..." onkeyup="searchUser()">
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="dataTable"></tbody>
+</table>
+
+<button onclick="goBack()">Back</button>
+</div>
+
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let editIndex = null;
+
+// Dark Mode
+function toggleMode(){
+    document.body.classList.toggle("dark");
+}
+
+// Multi Step + Progress
+function nextStep(){
+    document.querySelector(".step-1").style.display="none";
+    document.querySelector(".step-2").style.display="block";
+    document.getElementById("progressBar").style.width="100%";
+}
+function prevStep(){
+    document.querySelector(".step-1").style.display="block";
+    document.querySelector(".step-2").style.display="none";
+    document.getElementById("progressBar").style.width="50%";
+}
+
+// Password Strength
+document.getElementById("password").addEventListener("input",function(){
+    const value=this.value;
+    const strength=document.getElementById("strength");
+
+    if(value.length<6){
+        strength.textContent="Weak";
+        strength.style.color="red";
+    } else if(value.match(/[A-Z]/)&&value.match(/[0-9]/)){
+        strength.textContent="Strong";
+        strength.style.color="green";
+    } else{
+        strength.textContent="Medium";
+        strength.style.color="orange";
+    }
+});
+
+// Submit
+function submitForm(){
+    let name=document.getElementById("name").value;
+    let email=document.getElementById("email").value;
+
+    if(name===""||email===""){
+        alert("Fill all fields");
+        return;
+    }
+
+    if(editIndex===null){
+        users.push({name,email,status:"Active"});
+    }else{
+        users[editIndex].name=name;
+        users[editIndex].email=email;
+        editIndex=null;
+    }
+
+    localStorage.setItem("users",JSON.stringify(users));
+    loadDashboard();
+}
+
+// Load Dashboard
+function loadDashboard(){
+    document.getElementById("formSection").style.display="none";
+    document.getElementById("dashboardSection").style.display="block";
+    const table=document.getElementById("dataTable");
+    table.innerHTML="";
+
+    users.forEach((user,index)=>{
+        table.innerHTML+=`
+        <tr>
+        <td>${user.name}</td>
+        <td>${user.email}</td>
+        <td>
+            <span class="toggle ${user.status==='Active'?'active':'inactive'}"
+            onclick="toggleStatus(${index})">${user.status}</span>
+        </td>
+        <td>
+            <button class="action-btn edit" onclick="editUser(${index})">Edit</button>
+            <button class="action-btn delete" onclick="deleteUser(${index})">Delete</button>
+        </td>
+        </tr>
+        `;
+    });
+}
+
+// Toggle Status
+function toggleStatus(index){
+    users[index].status=
+    users[index].status==="Active"?"Inactive":"Active";
+    localStorage.setItem("users",JSON.stringify(users));
+    loadDashboard();
+}
+
+// Delete
+function deleteUser(index){
+    users.splice(index,1);
+    localStorage.setItem("users",JSON.stringify(users));
+    loadDashboard();
+}
+
+// Edit
+function editUser(index){
+    document.getElementById("formSection").style.display="block";
+    document.getElementById("dashboardSection").style.display="none";
+
+    document.getElementById("name").value=users[index].name;
+    document.getElementById("email").value=users[index].email;
+
+    editIndex=index;
+}
+
+// Search
+function searchUser(){
+    const input=document.getElementById("search").value.toLowerCase();
+    const rows=document.querySelectorAll("tbody tr");
+    rows.forEach(row=>{
+        row.style.display=row.textContent.toLowerCase().includes(input)?"":"none";
+    });
+}
+
+// Back
+function goBack(){
+    document.getElementById("dashboardSection").style.display="none";
+    document.getElementById("formSection").style.display="block";
+}
+</script>
+</body>
+</html>
